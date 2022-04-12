@@ -11,11 +11,11 @@ Have you ever had to `ssh` into a machine?
 
 Ever open multiple terminals/tabs/connections to do more then one thing at a time?
 
-Or more importantly: Have you ever had a power/network outage or otherwise had your terminal close,
-and subsuqently killed that database dump or `cp -R` halfway through?
+More importantly: Have you ever had a power/network outage or otherwise had your terminal close,
+which subsequently killed your database dump or `cp -R` halfway through?
 
 This doesn't only apply to `ssh`ing into remote servers. Try closing your terminal right now:
-everything currently running will be sent a `SIGHUP` (Hangup Signal) aka it dies.
+everything currently running will be sent a `SIGHUP` (Hangup Signal) aka...it dies.
 
 With `tmux` you get tabs built into your shell, and your programs keeps running even if you
 close the terminal or lose your network connection.
