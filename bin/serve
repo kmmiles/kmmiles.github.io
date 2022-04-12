@@ -4,4 +4,4 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/" && pwd)"
 root_dir="$(cd "$(dirname "$script_dir")/" && pwd)"
 
 cd "$root_dir"
-bundle exec jekyll serve
+bundle exec jekyll serve --incremental
