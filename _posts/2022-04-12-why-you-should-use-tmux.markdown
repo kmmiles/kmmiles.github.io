@@ -2,7 +2,7 @@
 layout: post
 title:  "Why you should use tmux"
 date:   2022-04-12 12:26:38 -0600
-categories: tmux linux ssh
+categories: tmux
 ---
 
 ![tmux-example]({{ site.url }}/assets/img/tmux-example.gif)
