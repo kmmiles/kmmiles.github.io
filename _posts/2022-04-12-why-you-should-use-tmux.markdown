@@ -1,5 +1,6 @@
 ---
 layout: post
+author: Beef Broccoli
 title:  "Why you should use tmux"
 date:   2022-04-12 12:26:38 -0600
 categories: tmux
@@ -143,5 +144,4 @@ Here's a neat trick to always open WSL2 with `tmux` using `Debian` as an example
 - Open Settings in Windows Terminal
 - Click `Add New Profile`, copy from the existing `Debian` profile, and name it `Debian (tmux)`
 - Change the `Command Line` option to: `wsl.exe -d Debian /usr/bin/tmux new -A -s WSL2`
-- Optinally make it the new default terminal in `Settings -> Startup`
-
+- Optionally make it the new default terminal in `Settings -> Startup`
