@@ -5,7 +5,7 @@ date:   2022-04-12 12:26:38 -0600
 categories: tmux linux ssh
 ---
 
-# Why you should be using `tmux`
+![tmux-example]({{ site.url }}/assets/img/tmux-example.gif)
 
 Have you ever had to `ssh` into a machine? 
 
@@ -38,6 +38,8 @@ I personally use `Fira Mono Nerd Font`.
 
 To start: `tmux`
 
+![tmux-default]({{ site.url }}/assets/img/tmux-default.png)
+
 This is where people get confused. It's extremely bare out of the box, and the shortcuts are a bit confusing.
 
 So, we're going to install a few plugins and a reasonable config.
@@ -51,6 +53,8 @@ Run:
 ```bash
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 ```
+
+![tmux-clone-tpm]({{ site.url }}/assets/img/tmux-clone-tpm.png)
 
 ...and you're done.
 
@@ -101,7 +105,11 @@ run '~/.tmux/plugins/tpm/tpm'
 
 Install the `tmux` plugins with: `~/.tmux/plugins/tpm/bin/install_plugins`
 
+![tmux-install-plugins]({{ site.url }}/assets/img/tmux-install-plugins.png)
+
 Now launch `tmux` again.
+
+![tmux-first-launch]({{ site.url }}/assets/img/tmux-first-launch.png)
 
 ## Navigating `tmux` and shortcut keys
 
@@ -125,3 +133,15 @@ I like to use an alias, so `mux` is the only thing I need type. It will either a
 Here i'm naming this session `km` because those are my initials. Feel free to choose a name of your liking.
 
 Now plop your alias at the bottom of `~/.bashrc` or `~/.zshrc` if you're using `zsh`.
+
+## Windows Terminal and WSL2
+
+Here's a neat trick to always open WSL2 with `tmux` using `Debian` as an example.
+
+![tmux-open-close]({{ site.url }}/assets/img/tmux-open-close.gif)
+
+- Open Settings in Windows Terminal
+- Click `Add New Profile`, copy from the existing `Debian` profile, and name it `Debian (tmux)`
+- Change the `Command Line` option to: `wsl.exe -d Debian /usr/bin/tmux new -A -s WSL2`
+- Optinally make it the new default terminal in `Settings -> Startup`
+
