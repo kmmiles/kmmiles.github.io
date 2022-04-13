@@ -8,18 +8,18 @@ categories: tmux
 
 ![tmux-example]({{ site.url }}/assets/img/tmux-example.gif)
 
-Have you ever had to `ssh` into a machine? 
+Do you open multiple terminals/tabs/connections to have more shells available?
 
-Ever open multiple terminals/tabs/connections to do more then one thing at a time?
+Ever lost your internet connection while `ssh`ing into a remote host?
 
-More importantly: Have you ever had a power/network outage or otherwise had your terminal close,
-which subsequently killed your database dump or `cp -R` halfway through?
+If you (or your cat) were to close your terminal right now:
 
-This doesn't only apply to `ssh`ing into remote servers. Try closing your terminal right now:
-everything currently running will be sent a `SIGHUP` (Hangup Signal) aka...it dies.
+  - your shell(s) are dead.
+  - all your programs running in those shells are dead.
 
-With `tmux` you get tabs built into your shell, and your programs keeps running even if you
-close the terminal or lose your network connection.
+With `tmux` your shells and programs keeps running. And you get cool "tabs" without spawning more terminals/connections.
+
+Best of all, you get a stupid bar with a clock on it! (no more need for that ohmyzsh plugin)
 
 ## Installing tmux
 
@@ -29,35 +29,17 @@ See here for more details: <https://github.com/tmux/tmux/wiki/Installing>
 
 ## Install / configure your terminal font
 
-Many `tmux` themes use glyphs that require a special font.
+Most `tmux` themes (the good looking ones) use glyphs that require a special font.
 If you haven't already, download and install a patched font of your choosing here: <https://github.com/ryanoasis/nerd-fonts#patched-fonts>.
 Then configure your terminal to use that font.
 
-I personally use `Fira Mono Nerd Font`.
-
-## Running
-
-To start: `tmux`
-
-![tmux-default]({{ site.url }}/assets/img/tmux-default.png)
-
-This is where people get confused. It's extremely bare out of the box, and the shortcuts are a bit confusing.
-
-So, we're going to install a few plugins and a reasonable config.
-
-Go ahead and exit `tmux` now with `exit`.
+I use `Fira Mono Nerd Font`. :shrug:
 
 ## Installing TPM (tmux plugin manager)
 
-Run:
-
-```bash
+{% highlight bash %}
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-```
-
-![tmux-clone-tpm]({{ site.url }}/assets/img/tmux-clone-tpm.png)
-
-...and you're done.
+{% endhighlight %}
 
 ## Updating tmux config
 
@@ -96,44 +78,57 @@ set -g @plugin "arcticicestudio/nord-tmux"
 run '~/.tmux/plugins/tpm/tpm'
 ```
 
-### NOTES 
+## Installing tmux plugins
 
-- The "prefix" is changed to `control+a` from the default `control+b`. This is to be consistant with `screen`, which `tmux` essentially replaces.
-- The mouse is enabled to facilitate copying/pasting, as well as switching tabs with the mouse.
-- `nord` is my chosen theme, but there are many alternatives, here's a collection: <https://github.com/jimeh/tmux-themepack>
-
-## Install tmux plugins
-
-Install the `tmux` plugins with: `~/.tmux/plugins/tpm/bin/install_plugins`
-
+```bash
+~/.tmux/plugins/tpm/bin/install_plugins
+```
 ![tmux-install-plugins]({{ site.url }}/assets/img/tmux-install-plugins.png)
 
-Now launch `tmux` again.
+## Create a `mux` alias
+
+Add this to your `~/.bashrc` or `~/.zshrc`:
+
+`alias mux='tmux new -A -s km'`
+
+Replace the session name `km` with your whatever your heart desires. It will be displayed in the lower left corner of `tmux`.
+
+## Running for the first time
+
+Restart your terminal and run `mux` (the only command you need to remember, remember?).
 
 ![tmux-first-launch]({{ site.url }}/assets/img/tmux-first-launch.png)
 
 ## Navigating `tmux` and shortcut keys
 
-All `tmux` commands work by hitting the prefix (`control + a`), releasing the keys, followed by hitting another key.
+All `tmux` commands work by holding `Ctrl` and pressing `a`, followed by the desired shortcut letter.
 
-- `c`       create a new tab
-- `n`       move to next tab
-- `space`   move to next tab
-- `p`       move to previous tab
-- `r`       reload the `tmux.conf`
-- `I`       install plugins
+- `c`             create a window (tab)
+- `n` or `space`  move to next window
+- `p`             move to previous window
+- `,`             rename current window
+- `r`             reload `tmux.conf`
+- `I`             install plugins
 
-This is essentially all you really need to know.
+Try creating a couple of windows, and cycling between them for practice.
+It only takes a few moments to figure out.
 
-## Create a `mux` alias
+Btw: We changed the prefix from the default `control + b` to `control + a` in our `tmux.conf`
+These are the same controls as `screen`, so it's easier for converts.
 
-I like to use an alias, so `mux` is the only thing I need type. It will either attach your main session, or create it if it doesn't exist.
+## Other themes
 
-`alias mux='tmux new -A -s km'`
+Don't like `nord`? There's others. Here's some alternatives:
 
-Here i'm naming this session `km` because those are my initials. Feel free to choose a name of your liking.
+ - Some plain color variations: <https://github.com/jimeh/tmux-themepack>
+ - Gruvbox: <https://github.com/egel/tmux-gruvbox>
+ - Dracula: <https://github.com/dracula/tmux>
 
-Now plop your alias at the bottom of `~/.bashrc` or `~/.zshrc` if you're using `zsh`.
+## Other tmux plugins
+
+If a clock isn't good enough for you, you can add more stupid stuff to tmux like battery power, cpu, temps, etc.
+
+See tmux plugins here: <https://github.com/tmux-plugins>
 
 ## Windows Terminal and WSL2
 
