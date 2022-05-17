@@ -8,11 +8,9 @@ categories: tmux
 
 ![tmux-example]({{ site.url }}/assets/img/tmux-example.gif)
 
-Ever lost your internet connection while `ssh`ing into a remote host?
+Ever have a terminal die or lose an `ssh` connection while doing something important?
 
-If your terminal closed right now, your shells (and any programs running said shells) would be terminated.
-
-But if you were using `tmux`, your shells and programs would still be running.
+If you were using `tmux`, your shells and programs would still be running.
 
 You also get cool tabs, screen splitting and a stupid bar with a clock on it! 
 
