@@ -8,18 +8,13 @@ categories: tmux
 
 ![tmux-example]({{ site.url }}/assets/img/tmux-example.gif)
 
-Do you open multiple terminals/tabs/connections to have more shells available?
-
 Ever lost your internet connection while `ssh`ing into a remote host?
 
-If you (or your cat) were to close your terminal right now:
+If your terminal closed right now, your shells (and any programs running said shells) would be terminated.
 
-  - your shell(s) are dead.
-  - all your programs running in those shells are dead.
+But if you were using `tmux`, your shells and programs would still be running.
 
-With `tmux` your shells and programs keeps running. And you get cool "tabs" without spawning more terminals/connections.
-
-Best of all, you get a stupid bar with a clock on it! (no more need for that ohmyzsh plugin)
+You also get cool tabs, screen splitting and a stupid bar with a clock on it! 
 
 ## Installing tmux
 
@@ -33,7 +28,7 @@ Most `tmux` themes (the good looking ones) use glyphs that require a special fon
 If you haven't already, download and install a patched font of your choosing here: <https://github.com/ryanoasis/nerd-fonts#patched-fonts>.
 Then configure your terminal to use that font.
 
-I use `Fira Mono Nerd Font`. :shrug:
+The font in the screenshots is `Fira Mono Nerd Font`.
 
 ## Installing TPM (tmux plugin manager)
 
@@ -43,7 +38,7 @@ git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 
 ## Updating tmux config
 
-This is my default tmux config. Write these contents to `~/.tmux.conf`.
+This is a reasonable default config. Write these contents to `~/.tmux.conf`.
 
 ```tmux
 # uncomment below to use `zsh` or your favorite shell by default
@@ -53,17 +48,18 @@ This is my default tmux config. Write these contents to `~/.tmux.conf`.
 set -g default-terminal "xterm-256color"
 set-option -ga terminal-overrides ",xterm-256color:Tc"
 
-# make C-a the prefix
+# change the prefix from C-b to C-a. these are the keys used by `screen`, so it's easier for converts.
+make C-a the prefix
 unbind-key C-b
 set-option -g prefix C-a
 bind-key   a send-prefix
 
+# enable mouse. clicking tabs will work, if your terminal supports it.
+setw -g mouse on
+
 # bind space to "next window"
 bind-key -r Space next-window
 bind-key -r "C-Space" next-window
-
-# enable mouse
-setw -g mouse on
 
 # set clock format
 setw -g clock-mode-style 12
@@ -80,22 +76,23 @@ run '~/.tmux/plugins/tpm/tpm'
 
 ## Installing tmux plugins
 
+Install the tmux plugins on the command line:
+
 ```bash
 ~/.tmux/plugins/tpm/bin/install_plugins
 ```
-![tmux-install-plugins]({{ site.url }}/assets/img/tmux-install-plugins.png)
 
 ## Create a `mux` alias
 
 Add this to your `~/.bashrc` or `~/.zshrc`:
 
-`alias mux='tmux new -A -s km'`
+`alias mux='tmux new -A -s tmux'`
 
-Replace the session name `km` with your whatever your heart desires. It will be displayed in the lower left corner of `tmux`.
+Replace the session name `tmux` with anything you like - it is the text displayed in the lower left corner.
 
 ## Running for the first time
 
-Restart your terminal and run `mux` (the only command you need to remember, remember?).
+Restart your terminal and run `mux`:
 
 ![tmux-first-launch]({{ site.url }}/assets/img/tmux-first-launch.png)
 
@@ -112,9 +109,6 @@ All `tmux` commands work by holding `Ctrl` and pressing `a`, followed by the des
 
 Try creating a couple of windows, and cycling between them for practice.
 It only takes a few moments to figure out.
-
-Btw: We changed the prefix from the default `control + b` to `control + a` in our `tmux.conf`
-These are the same controls as `screen`, so it's easier for converts.
 
 ## Other themes
 
