@@ -1,0 +1,201 @@
+---
+layout: post
+author: Beef Broccoli
+title:  "Decoupling your data from WSL using VHD disk images"
+date:   2022-12-20 12:26:38 -0600
+categories: wsl vhd linux
+---
+
+> UPDATE: I wrote a script to automate all this crap: <https://github.com/kmmiles/wsl-vhd>
+
+One of my gripes about WSL is that your data is wedded to the distribution. WSL stores each distribution,
+and all files contained in it, within a single VHD disk image. And there's no decent generic way of
+decoupling that data.
+
+## Windows Requirements
+
+ - Windows 11 21H2 or higher.
+ - WSL installed from the Microsoft Store: <https://devblogs.microsoft.com/commandline/a-preview-of-wsl-in-the-microsoft-store-is-now-available/>
+
+## The new `--mount` option in WSL
+
+So, I first learned that Microsoft included a new `--mount` option in the `wsl` utility that opens the door for some pretty neat things: <https://learn.microsoft.com/en-us/windows/wsl/wsl2-mount-disk>. 
+
+My first thought was to add a seperate partition to my drive, and use `wsl --mount` to mount it within WSL.
+I quickly ran into a major limitation:
+
+> “it's not possible to use wsl --mount to read a partition on the boot device, because that device can't be detached from Windows.”
+
+Ouch. That means I'd need to dedicate a second *physical* disk to WSL. Well, my laptop doesn't *have* a second physical disk. :(
+
+## Using a virtual hard drive (VHD)
+
+Fortunately WSL has added yet another new option: `wsl --mount --vhd`. That means I could use a VHD disk image instead of a second physical disk to achieve the same thing. But as expected, I ran into more limitations:
+
+  - It requires the `Mount-VHD` tool, which is not included in Home editions.
+  - The process requires jumping between GUI's, Powershell, and WSL.
+
+Well, screw that. How about we do all this entirely within WSL?
+
+### Install Linux requirements
+
+Ubuntu/Debian based distros:
+
+```bash
+sudo apt install qemu-utils ntfs-3g
+```
+
+Redhat based distros:
+
+```bash
+sudo dnf install qemu-img ntfsprogs
+```
+
+> If you don't care about ntfs, you can omit the ntfs packages.
+
+### Create the VHD
+
+Use `qemu-img` to create a 10GB VHD called `mydisk.vhdx`.
+
+
+```bash
+qemu-img create -f vhdx /mnt/c/mydisk.vhdx 10G
+```
+
+> NOTE: The VHD files **must** be stored on Windows.
+
+### Attach the VHD to WSL
+
+First we need to "attach" aka "bare mount" the VHD. This exposes the device to Linux without actually mounting it:
+
+```bash
+wsl.exe --mount --vhd --bare 'C:\mydisk.vhdx'
+```
+
+> Pro-tip: When calling Windows programs from WSL, you need only append the command with `.exe`.
+
+Now use `dmesg` to see which device it mapped to:
+
+```
+[227979.476940] scsi 0:0:0:4: Direct-Access     Msft     Virtual Disk     1.0  PQ: 0 ANSI: 5
+[227979.478324] sd 0:0:0:4: Attached scsi generic sg4 type 0
+[227979.478866] sd 0:0:0:4: [sdd] 20971520 512-byte logical blocks: (10.7 GB/10.0 GiB)
+[227979.479499] sd 0:0:0:4: [sdd] Write Protect is off
+[227979.479898] sd 0:0:0:4: [sdd] Mode Sense: 0f 00 00 00
+[227979.480433] sd 0:0:0:4: [sdd] Write cache: enabled, read cache: enabled, doesn't support DPO or FUA
+[227979.483982] sd 0:0:0:4: [sdd] Attached SCSI disk
+```
+
+As we can see, the device was attached to `/dev/sdd`.
+
+### Special caveats for NTFS
+
+There are two major caveats for NTFS:
+
+**1) Windows can't read an NTFS filesystem on a VHD unless it's created on a partition.**
+
+The below command will create a partition table and a new NTFS partition on `/dev/sdd`
+
+```bash
+printf 'n\np\n1\n\n\nt 1\n7\nw\n' | sudo fdisk /dev/sdd
+```
+
+The partition can now be formatted: `sudo mkfs.ntfs /dev/sdd1`
+
+**2) The WSL kernel does not support NTFS (go figure)**
+
+That means `wsl.exe` can only attach (bare mount) the VHD. We have to manually `mount` it using the FUSE userland driver.
+
+```bash
+sudo mount /dev/sdd1 /mnt/wsl/mydisk
+```
+
+The three steps below (format, detach and mount) can be skipped.
+
+### Format the VHD
+
+Now let's format it with our filesystem of choice. We'll choose `ext4` for this example: 
+
+```bash
+sudo mkfs.ext4 /dev/sdd
+```
+
+> Pro-tip: Run `cat /proc/filesystems` to view the filesystem types supported by the kernel.
+> You may need additional tools to utilize them e.g. Btrfs requires `btrfs-progs`.
+
+### Detach the VHD from WSL
+
+At this point we could `mount` it, but we'd rather detach it and use `wsl.exe --mount` instead.
+This will be the normal mounting procedure going forward.
+
+```bash
+wsl.exe --unmount '\\?\C:\mydisk.vhdx'
+```
+
+> Note the single quotes and strange `\\?\` prefix. Long story short, it's required for `--unmount`.
+> You could also simply do `wsl.exe --unmount`, which will unmount anything you've mounted with
+> `wsl.exe --mount`. Don't worry, it won't unmount your `/` drive.
+
+## Mount the VHD
+
+```bash
+wsl.exe --mount --vhd --name "mydisk" 'C:\mydisk.vhdx'
+```
+
+The VHD should now be mounted at `/mnt/wsl/mydisk`.
+Even better, this mountpoint is exposed to *all* WSL distributions!
+
+> If you omit `--name` the mountpoint will be the VHD path, stripped of delimiters e.g. `/mnt/wsl/Cmydiskvhdx`.
+
+## Change ownership 
+
+At this point, only `root` will have write access to the mountpoint. To give the current user access:
+```bash
+sudo chown "$(id -un):$(id -gn)" /mnt/wsl/mydisk
+```
+
+## Automatically mounting on startup
+
+With a little effort, we can automatically mount the VHD when launching a distribution.
+
+Create the following shell script at `/onboot` e.g. `sudo editor /onboot`
+
+```bash
+#!/bin/bash
+
+/mnt/c/WINDOWS/system32/wsl.exe --mount --vhd --name 'mydisk' 'C:\mydisk.vhdx'
+```
+
+Give it execute permissions:
+
+```bash
+sudo chmod +x /onboot
+```
+
+Now `sudo editor /etc/wsl.conf` and add:
+
+```
+[boot]
+command = /onboot > /onboot.log 2>&1
+```
+
+> An external script is used because `command` will choke parsing Windows paths.
+
+Now shutdown WSL with `wsl.exe --shutdown`. Upon relaunching the VHD should automatically be mounted.
+
+> If something goes wrong, check the output stored in `/onboot.log` 
+
+## Compact the VHD aka sparsify aka thin provision
+
+After significant use and/or filling the VHD to capacity and free'ing up space, the actual size on disk
+will not be automatically freed. You can reclaim a percentage of this space with the following:
+
+```bash
+dd if=/dev/zero of=/mnt/wsl/mydisk/zeros
+rm -f /mnt/wsl/mydisk/zeros
+wsl.exe --unmount '\\?\C:\mydisk.vhdx'
+qemu-img convert -f vhdx -O vhdx /mnt/c/mydisk.vhdx /mnt/c/mydisk-thin.vhdx
+mv /mnt/c/mydisk-thin.vhdx /mnt/c/mydisk.vhdx
+```
+
+> This is the equivalent of the `compact` feature of the Windows `diskpart` tool.

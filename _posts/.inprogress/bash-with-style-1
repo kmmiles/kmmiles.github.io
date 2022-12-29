@@ -1,0 +1,73 @@
+#!/bin/bash
+
+PROG_NAME="$(basename "$0")"
+VERBOSE=false
+
+backup() {
+  usage() {
+    cat <<EOF
+Usage: $PROG_NAME ${FUNCNAME[0]} [OPTIONS] <FILE>
+
+OPTIONS
+
+  -h  This message
+  -s  Always try to create a sparse file
+EOF
+  }
+
+  local OPTIND sparse
+  sparse=false
+  while getopts 's' flag; do
+    case "${flag}" in
+      s) sparse=true ;;
+      *) return 1 ;;
+    esac
+  done
+
+  shift $((OPTIND - 1))
+  file="${1:-}"
+  [[ -n "$file" ]] || return 1
+
+  cp_opts=('-a')
+  if $sparse; then
+    cp+=('--sparse=always')
+  fi
+
+  if $VERBOSE; then
+    printf 'options: %s\n' "$*"
+  fi
+
+  cp "${cp_opts[@]}" "$file" "$HOME/Backup"
+}
+
+
+main() {
+  usage() {
+    cat <<EOF
+Usage: $PROG_NAME [OPTIONS] <COMMAND>
+
+OPTIONS
+
+  -h  This message
+  -v  Verbose
+
+COMMANDS
+
+  cat   Prints a file to stdout.
+EOF
+  }
+
+  # getopts
+  local OPTIND
+  while getopts 'hv' flag; do
+    case "${flag}" in
+      v) VERBOSE=true;;
+      *) usage; return 1;;
+    esac
+  done
+  shift $((OPTIND - 1))
+
+  myscript-cat "myfile.txt"
+}
+
+main "$@"

@@ -3,6 +3,6 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/" && pwd)"
 root_dir="$(cd "$(dirname "$script_dir")/" && pwd)"
 
-cd "$root_dir"
+cd "$root_dir" || :
 rm -rf _site
-bundle exec jekyll serve --incremental
+nohup bundle exec jekyll serve --incremental > "$script_dir"/server.log 2>&1 &
