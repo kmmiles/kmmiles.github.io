@@ -101,6 +101,9 @@ That means `wsl.exe` can only attach (bare mount) the VHD. We have to manually `
 sudo mount /dev/sdd1 /mnt/wsl/mydisk
 ```
 
+> Because we used `mount`, `wsl.exe --unmount` will only be able to detach the device, therefore you must also
+> call `umount /mnt/wsl/mydisk`.
+
 The three steps below (format, detach and mount) can be skipped.
 
 ### Format the VHD
