@@ -38,17 +38,9 @@ Well, screw that. How about we do all this entirely within WSL?
 
 ### Install Linux requirements
 
-Ubuntu/Debian based distros:
+Debian/Ubuntu: `sudo apt install qemu-utils ntfs-3g util-linux`
 
-```bash
-sudo apt install qemu-utils ntfs-3g
-```
-
-Redhat based distros:
-
-```bash
-sudo dnf install qemu-img ntfsprogs
-```
+Redhat/Fedora: `sudo dnf install qemu-img ntfsprogs util-linux`
 
 > If you don't care about ntfs, you can omit the ntfs packages.
 
