@@ -8,9 +8,8 @@ categories: wsl vhd linux
 
 > UPDATE: I wrote a script to automate all this crap: <https://github.com/kmmiles/wsl-vhd>
 
-One of my gripes about WSL is that your data is wedded to the distribution. WSL stores each distribution,
-and all files contained in it, within a single VHD disk image. And there's no decent generic way of
-decoupling that data.
+WSL stores each distribution, and all files contained in it, within a single VHD disk image.
+And there's no decent generic way of decoupling that data.
 
 ## Windows Requirements
 
