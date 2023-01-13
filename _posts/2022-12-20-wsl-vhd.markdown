@@ -90,7 +90,7 @@ Now use `dmesg` to see which device it mapped to:
 
 As we can see, the device was attached to `/dev/sdd`.
 
-### Special caveats for Windows and/or FUSE filesystems (NTFS, exFAT, vfat, etc)
+### Special instructions for Windows and/or FUSE filesystems (NTFS, exFAT, vfat, etc)
 
 **1) Windows can't natively open a VHD unless there's a partition table.**
 
