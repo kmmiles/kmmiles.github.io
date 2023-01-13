@@ -103,7 +103,9 @@ printf 'n\np\n1\n\n\nt 1\n7\nw\n' | sudo fdisk /dev/sdd
 The partition can now be formatted: 
 
 NTFS: `sudo mkfs.ntfs /dev/sdd1`
+
 exFAT: `sudo mkfs.exfat /dev/sdd1`
+
 vfat: `sudo mkfs.vfat /dev/sdd1`
 
 **2) The WSL kernel does not include support for NTFS or exfat **
