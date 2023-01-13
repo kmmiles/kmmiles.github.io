@@ -6,15 +6,15 @@ date:   2022-12-20 12:26:38 -0600
 categories: wsl vhd linux
 ---
 
-> UPDATE: I wrote a script to automate all this crap: <https://github.com/kmmiles/wsl-vhd-bash>
+> UPDATE: I wrote a script to automate all this: <https://github.com/kmmiles/wsl-vhd-bash>
 
-WSL stores each distribution, and all files contained in it, within a single VHD disk image.
-And there's no decent generic way of decoupling that data.
+WSL stores each distribution, and all files contained within it, in a single VHD disk image. There has been no *decent* way of decoupling that data. But with Windows 11 Build 22000, there are enough pieces of the puzzle to do this viably, and all from Linux.
 
 ## Windows Requirements
 
- - Windows 11 21H2 or higher.
- - WSL installed from the Microsoft Store: <https://devblogs.microsoft.com/commandline/a-preview-of-wsl-in-the-microsoft-store-is-now-available/>
+ - Windows 11 22000 or or higher.
+ - WSL (the feature itself) installed from the Microsoft Store: <https://devblogs.microsoft.com/commandline/a-preview-of-wsl-in-the-microsoft-store-is-now-available/>
+ - A working WSL distribution (Tested with Ubuntu, Debian 11, and Alma Linux 9)
 
 ## The new `--mount` option in WSL
 
@@ -25,7 +25,7 @@ I quickly ran into a major limitation:
 
 > “it's not possible to use wsl --mount to read a partition on the boot device, because that device can't be detached from Windows.”
 
-Ouch. That means I'd need to dedicate a second *physical* disk to WSL. Well, my laptop doesn't *have* a second physical disk. :(
+Ouch. That means I'd need to dedicate a second *physical* disk to WSL. Well, my laptop doesn't *have* a second physical disk.
 
 ## Using a virtual hard drive (VHD)
 
@@ -34,15 +34,26 @@ Fortunately WSL has added yet another new option: `wsl --mount --vhd`. That mean
   - It requires the `Mount-VHD` tool, which is not included in Home editions.
   - The process requires jumping between GUI's, Powershell, and WSL.
 
-Well, screw that. How about we do all this entirely within WSL?
+But we can do all this from a Linux shell.
 
-### Install Linux requirements
+### Install Linux dependencies
+
+From a shell in your choice of WSL distribution...
 
 Debian/Ubuntu: `sudo apt install qemu-utils ntfs-3g util-linux`
 
-Redhat/Fedora: `sudo dnf install qemu-img ntfsprogs util-linux`
+Redhat: `sudo dnf install qemu-img ntfsprogs util-linux`
 
-> If you don't care about ntfs, you can omit the ntfs packages.
+#### Include support for `btrfs`, `ntfs`, `exfat`, `vfat`, `fat`, and `msdos`: 
+
+Debian/Ubuntu: `sudo apt install util-linux qemu-utils btrfs-progs ntfs-3g exfat-utils exfat-fuse dosfstools`
+
+Fedora: 
+```bash
+dnf install -y \
+  https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+sudo dnf install util-linux qemu-img btrfs-progs ntfsprogs exfatprogs fuse-exfat dosfstools
+```
 
 ### Create the VHD
 
@@ -79,32 +90,40 @@ Now use `dmesg` to see which device it mapped to:
 
 As we can see, the device was attached to `/dev/sdd`.
 
-### Special caveats for NTFS
+### Special caveats for Windows and/or FUSE filesystems (NTFS, exFAT, vfat, etc)
 
-There are two major caveats for NTFS:
+**1) Windows can't natively open a VHD unless there's a partition table.**
 
-**1) Windows can't read an NTFS filesystem on a VHD unless it's created on a partition.**
-
-The below command will create a partition table and a new NTFS partition on `/dev/sdd`
+The below command will create a HPFS/NTFS/exFAT partition on `/dev/sdd`
 
 ```bash
 printf 'n\np\n1\n\n\nt 1\n7\nw\n' | sudo fdisk /dev/sdd
 ```
 
-The partition can now be formatted: `sudo mkfs.ntfs /dev/sdd1`
+The partition can now be formatted: 
 
-**2) The WSL kernel does not support NTFS (go figure)**
+NTFS: `sudo mkfs.ntfs /dev/sdd1`
+exFAT: `sudo mkfs.exfat /dev/sdd1`
+vfat: `sudo mkfs.vfat /dev/sdd1`
 
-That means `wsl.exe` can only attach (bare mount) the VHD. We have to manually `mount` it using the FUSE userland driver.
+**2) The WSL kernel does not include support for NTFS or exfat **
+
+That means `wsl.exe` can only attach the VHD (bare mount). We have to manually `mount` it using the FUSE userland driver.
 
 ```bash
-sudo mount /dev/sdd1 /mnt/wsl/mydisk
+sudo mount -o "uid=$(id -u)" /dev/sdd1 /mnt/wsl/mydisk
 ```
 
-> Because we used `mount`, `wsl.exe --unmount` will only be able to detach the device, therefore you must also
-> call `umount /mnt/wsl/mydisk`.
+> The `uid` option is passed to give read/write permission to the current user
 
-The three steps below (format, detach and mount) can be skipped.
+To unmount the disk:
+
+```bash
+sudo umount /mnt/wsl/mydisk
+wsl.exe --unmount '\\?\C:\mydisk.vhdx'
+```
+
+> If you followed this section, skip the three steps below (format, detach and mount).
 
 ### Format the VHD
 
@@ -119,16 +138,15 @@ sudo mkfs.ext4 /dev/sdd
 
 ### Detach the VHD from WSL
 
-At this point we could `mount` it, but we'd rather detach it and use `wsl.exe --mount` instead.
-This will be the normal mounting procedure going forward.
+At this point we could `sudo mount` it, but we'd rather detach it and use `wsl.exe --mount` instead.
+(so we don't have to call `sudo umount` when we unmount it later)
 
 ```bash
 wsl.exe --unmount '\\?\C:\mydisk.vhdx'
 ```
 
-> Note the single quotes and strange `\\?\` prefix. Long story short, it's required for `--unmount`.
-> You could also simply do `wsl.exe --unmount`, which will unmount anything you've mounted with
-> `wsl.exe --mount`. Don't worry, it won't unmount your `/` drive.
+> Note the single quotes and `\\?\` prefix. This is a Windows extended path prefix. Long story short, it's required for `--unmount`.
+> You could also simply do `wsl.exe --unmount`, which will unmount anything you've mounted with `wsl.exe --mount`. Don't worry, it won't unmount your `/` drive.
 
 ## Mount the VHD
 
@@ -137,7 +155,7 @@ wsl.exe --mount --vhd --name "mydisk" 'C:\mydisk.vhdx'
 ```
 
 The VHD should now be mounted at `/mnt/wsl/mydisk`.
-Even better, this mountpoint is exposed to *all* WSL distributions!
+This mountpoint is exposed to all distributions.
 
 > If you omit `--name` the mountpoint will be the VHD path, stripped of delimiters e.g. `/mnt/wsl/Cmydiskvhdx`.
 
