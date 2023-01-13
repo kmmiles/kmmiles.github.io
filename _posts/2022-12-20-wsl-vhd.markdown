@@ -6,7 +6,7 @@ date:   2022-12-20 12:26:38 -0600
 categories: wsl vhd linux
 ---
 
-> UPDATE: I wrote a script to automate all this crap: <https://github.com/kmmiles/wsl-vhd>
+> UPDATE: I wrote a script to automate all this crap: <https://github.com/kmmiles/wsl-vhd-bash>
 
 WSL stores each distribution, and all files contained in it, within a single VHD disk image.
 And there's no decent generic way of decoupling that data.
