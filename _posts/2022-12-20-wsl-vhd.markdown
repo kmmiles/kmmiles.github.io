@@ -18,23 +18,18 @@ WSL stores each distribution, and all files contained within it, in a single VHD
 
 ## The new `--mount` option in WSL
 
-So, I first learned that Microsoft included a new `--mount` option in the `wsl` utility that opens the door for some pretty neat things: <https://learn.microsoft.com/en-us/windows/wsl/wsl2-mount-disk>. 
+I first learned that Microsoft included a new `--mount` option in the `wsl` utility that opens the door for some pretty neat things: <https://learn.microsoft.com/en-us/windows/wsl/wsl2-mount-disk>. 
 
-My first thought was to add a seperate partition to my drive, and use `wsl --mount` to mount it within WSL.
-I quickly ran into a major limitation:
+My first thought was to add a seperate partition to my drive, and use `wsl --mount` to mount it within WSL, but...
 
 > “it's not possible to use wsl --mount to read a partition on the boot device, because that device can't be detached from Windows.”
 
-Ouch. That means I'd need to dedicate a second *physical* disk to WSL. Well, my laptop doesn't *have* a second physical disk.
+Well, that sucks.
 
 ## Using a virtual hard drive (VHD)
 
-Fortunately WSL has added yet another new option: `wsl --mount --vhd`. That means I could use a VHD disk image instead of a second physical disk to achieve the same thing. But as expected, I ran into more limitations:
-
-  - It requires the `Mount-VHD` tool, which is not included in Home editions.
-  - The process requires jumping between GUI's, Powershell, and WSL.
-
-But we can do all this from a Linux shell.
+Fortunately WSL has added yet another option: `wsl --mount --vhd`. That means a VHD disk image can be used instead. 
+I found guides and blogs detailing how to do this, but I wasn't happy with them and wanted to do it entirely within WSL.
 
 ### Install Linux dependencies
 
@@ -58,7 +53,6 @@ sudo dnf install util-linux qemu-img btrfs-progs ntfsprogs exfatprogs fuse-exfat
 ### Create the VHD
 
 Use `qemu-img` to create a 10GB VHD called `mydisk.vhdx`.
-
 
 ```bash
 qemu-img create -f vhdx /mnt/c/mydisk.vhdx 10G
@@ -90,89 +84,74 @@ Now use `dmesg` to see which device it mapped to:
 
 As we can see, the device was attached to `/dev/sdd`.
 
-### Special instructions for Windows and/or FUSE filesystems (NTFS, exFAT, vfat, etc)
+### Create partition (optional)
 
-**1) Windows can't natively open a VHD unless there's a partition table.**
-
-The below command will create a HPFS/NTFS/exFAT partition on `/dev/sdd`
+For NTFS/vfat/exFAT/msdos VHD's, you should probably use a partition.
+Windows requires one to mount natively (i.e. without WSL).
 
 ```bash
 printf 'n\np\n1\n\n\nt 1\n7\nw\n' | sudo fdisk /dev/sdd
 ```
 
-The partition can now be formatted: 
+We created an HPFS/NTFS/exFAT partition on `/dev/sdd1`.
 
-NTFS: `sudo mkfs.ntfs /dev/sdd1`
+### Format
 
-exFAT: `sudo mkfs.exfat /dev/sdd1`
-
-vfat: `sudo mkfs.vfat /dev/sdd1`
-
-**2) The WSL kernel does not include support for NTFS or exfat **
-
-That means `wsl.exe` can only attach the VHD (bare mount). We have to manually `mount` it using the FUSE userland driver.
+Now let's format it with our filesystem of choice.
 
 ```bash
-sudo mount -o "uid=$(id -u)" /dev/sdd1 /mnt/wsl/mydisk
+sudo mkfs.ext4 /dev/sdd   # ext4
+sudo mkfs.btrfs /dev/sdd  # btrfs
+sudo mkfs.ntfs /dev/sdd1  # ntfs
+sudo mkfs.exfat /dev/sdd1 # exfat
+sudo mkfs.vfat /dev/sdd1  # vfat
 ```
 
-> The `uid` option is passed to give read/write permission to the current user
+### Mount non-FUSE filesystems e.g. ext2, ext3, ext4, btrfs
 
-To unmount the disk:
+For native linux filesystems, we'll use `wsl.exe` for all mounting/unmounting.
 
-```bash
-sudo umount /mnt/wsl/mydisk
-wsl.exe --unmount '\\?\C:\mydisk.vhdx'
-```
-
-> If you followed this section, skip the three steps below (format, detach and mount).
-
-### Format the VHD
-
-Now let's format it with our filesystem of choice. We'll choose `ext4` for this example: 
-
-```bash
-sudo mkfs.ext4 /dev/sdd
-```
-
-> Pro-tip: Run `cat /proc/filesystems` to view the filesystem types supported by the kernel.
-> You may need additional tools to utilize them e.g. Btrfs requires `btrfs-progs`.
-
-### Detach the VHD from WSL
-
-At this point we could `sudo mount` it, but we'd rather detach it and use `wsl.exe --mount` instead.
-(so we don't have to call `sudo umount` when we unmount it later)
+First detach it:
 
 ```bash
 wsl.exe --unmount '\\?\C:\mydisk.vhdx'
 ```
 
-> Note the single quotes and `\\?\` prefix. This is a Windows extended path prefix. Long story short, it's required for `--unmount`.
-> You could also simply do `wsl.exe --unmount`, which will unmount anything you've mounted with `wsl.exe --mount`. Don't worry, it won't unmount your `/` drive.
+> You could also just do `wsl.exe --unmount`, which will unmount anything you've mounted with `wsl.exe`. 
+> Note the single quotes and `\\?\` prefix. This is a Windows extended path prefix and required for `wsl.exe --umount`.
 
-## Mount the VHD
+Now mount it:
 
 ```bash
 wsl.exe --mount --vhd --name "mydisk" 'C:\mydisk.vhdx'
 ```
 
-The VHD should now be mounted at `/mnt/wsl/mydisk`.
-This mountpoint is exposed to all distributions.
-
 > If you omit `--name` the mountpoint will be the VHD path, stripped of delimiters e.g. `/mnt/wsl/Cmydiskvhdx`.
 
-## Change ownership 
+Optionally give read/write access to the current user:
 
-At this point, only `root` will have write access to the mountpoint. To give the current user access:
 ```bash
 sudo chown "$(id -un):$(id -gn)" /mnt/wsl/mydisk
 ```
+
+### Mount FUSE filesystems e.g. ntfs, exfat, vfat
+
+For FUSE filesystems, the VHD must be attached with `wsl.exe` and mounted with `sudo mount`.
+We already attached the VHD in the previous steps, so the first step can be skipped.
+
+```bash
+wsl.exe --mount --vhd --bare 'C:\mydisk.vhdx'
+sudo mount -o "uid=$(id -u)" /dev/sdd1 /mnt/wsl/mydisk
+```
+
+`chown` doesn't work as expected, so the `uid` option is passed to give read/write permission the current user.
+This should be supported for ntfs, exfat, and vfat but if not just omit it.
 
 ## Automatically mounting on startup
 
 With a little effort, we can automatically mount the VHD when launching a distribution.
 
-Create the following shell script at `/onboot` e.g. `sudo editor /onboot`
+Create a shell script at `/onboot` e.g. `sudo editor /onboot`
 
 ```bash
 #!/bin/bash
@@ -192,8 +171,6 @@ Now `sudo editor /etc/wsl.conf` and add:
 [boot]
 command = /onboot > /onboot.log 2>&1
 ```
-
-> An external script is used because `command` will choke parsing Windows paths.
 
 Now shutdown WSL with `wsl.exe --shutdown`. Upon relaunching the VHD should automatically be mounted.
 
