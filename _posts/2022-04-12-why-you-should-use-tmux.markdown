@@ -28,12 +28,6 @@ Then configure your terminal to use that font.
 
 The font in the screenshots is `Fira Mono Nerd Font`.
 
-## Installing TPM (tmux plugin manager)
-
-{% highlight bash %}
-git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-{% endhighlight %}
-
 ## Updating tmux config
 
 This is a reasonable default config. Write these contents to `~/.tmux.conf`.
@@ -74,19 +68,27 @@ run '~/.tmux/plugins/tpm/tpm'
 
 ## Installing tmux plugins
 
-Install the tmux plugins on the command line:
+First clone `tpm`, which manages the plugins.
+
+{% highlight bash %}
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+{% endhighlight %}
+
+Then tell `tpm` to install the plugins specified in the tmux config:
 
 ```bash
 ~/.tmux/plugins/tpm/bin/install_plugins
 ```
+## Optionally create a `mux` alias
 
-## Create a `mux` alias
+This is a handy alias to start `tmux`; it will attach to an existing session if one exists, otherwise
+a new session will be created.
 
 Add this to your `~/.bashrc` or `~/.zshrc`:
 
-`alias mux='tmux new -A -s tmux'`
+`alias mux='tmux new -A -s jammy'`
 
-Replace the session name `tmux` with anything you like - it is the text displayed in the lower left corner.
+Replace the session name `jammy` with anything you like - it will be displayed in the lower left corner.
 
 ## Running for the first time
 
